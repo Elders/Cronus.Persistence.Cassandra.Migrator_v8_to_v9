@@ -1,0 +1,25 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Worker">
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Cronus" Version="9.0.0-preview.28" />
+    <PackageReference Include="Cronus.Api" Version="9.0.0-preview.3" />
+    <PackageReference Include="Cronus.Cluster.Consul" Version="8.0.3" />
+    <PackageReference Include="Cronus.Persistence.Cassandra" Version="9.0.0-preview.21" />
+    <PackageReference Include="Cronus.Projections.Cassandra" Version="9.0.0-preview.3" />
+    <PackageReference Include="Cronus.Serialization.NewtonsoftJson" Version="9.0.0-preview.1" />
+    <PackageReference Include="Cronus.Transport.RabbitMQ" Version="9.0.0-preview.6" />
+    <PackageReference Include="IdentityModel.AspNetCore" Version="4.3.0" />
+    <PackageReference Include="Microsoft.ApplicationInsights.WorkerService" Version="2.21.0" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="6.0.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Log\Log.csproj" />
+  </ItemGroup>
+
+</Project>
