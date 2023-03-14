@@ -2,16 +2,9 @@
     "Serilog": {
         "MinimumLevel": {
             // Verbose | Debug | Information | Warning | Error | Fatal
-            "Default": "Debug",
-            "Override": {
-                "Elders": "Warning",
-                "Microsoft": "Information",
-                "Microsoft.AspNetCore": "Warning",
-                "System": "Information"
-            }
+            "Default": "Debug"
         },
         "WriteTo": [
-            { "Name": "Debug" },
             {
                 "Name": "Console",
                 "Args": {
@@ -21,7 +14,7 @@
             //,{
             //    "Name": "File",
             //    "Args": {
-            //        "path": "%PROGRAMDATA%\\.logs\\%pandora_application%\\log.txt",
+            //        "path": "%PROGRAMDATA%\\.logs\\Elders.Cronus.Persistence.Cassandra.Migrator_v8_to_v9\\log.txt",
             //        "rollingInterval": "Day"
             //    }
             //},
