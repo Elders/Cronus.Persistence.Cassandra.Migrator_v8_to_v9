@@ -31,9 +31,12 @@ namespace Elders.Cronus.Persistence.Cassandra.Migrator_v8_to_v9
                 string paginationToken = configuration["paginationToken"];
                 logger.LogInformation($"Initial Pagination Token => {paginationToken}");
                 bool hasMore = true;
+
+                List<Task> tasks = new List<Task>();
+
                 while (hasMore)
                 {
-                    LoadAggregateCommitsResult data = await castedSource.LoadAggregateCommitsAsync(paginationToken, 1000).ConfigureAwait(false);
+                    LoadAggregateCommitsResult data = await castedSource.LoadAggregateCommitsAsync(paginationToken, 10000).ConfigureAwait(false);
                     if (data.Commits.Any())
                         logger.LogInformation(Encoding.UTF8.GetString(data.Commits.Last().AggregateRootId));
 
@@ -62,7 +65,21 @@ namespace Elders.Cronus.Persistence.Cassandra.Migrator_v8_to_v9
 
                         if (dryRun == false)
                         {
-                            await target.AppendAsync(migrated).ConfigureAwait(false);
+                            var appendTask = target.AppendAsync(migrated);
+
+                            tasks.Add(appendTask);
+
+                            if (tasks.Count > 100)
+                            {
+                                Task completedTask = await Task.WhenAny(tasks);
+                                if (completedTask.IsFaulted)
+                                {
+                                    logger.ErrorException(completedTask.Exception, () => "The fail");
+                                }
+                                tasks.Remove(completedTask);
+                            }
+
+                            await Task.WhenAll(tasks);
                         }
                     }
                 }
