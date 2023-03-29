@@ -1,4 +1,5 @@
-﻿using Elders.Cronus.EventStore;
+﻿using Cassandra;
+using Elders.Cronus.EventStore;
 using Elders.Cronus.Migrations;
 
 namespace Elders.Cronus.Persistence.Cassandra.Migrator_v8_to_v9
@@ -22,47 +23,48 @@ namespace Elders.Cronus.Persistence.Cassandra.Migrator_v8_to_v9
             if (dryRun)
                 logger.Info(() => "Running Migration in DRY-RUN mode...");
 
-            var data = source.LoadAggregateCommitsAsync();
+            CassandraEventStorePlayer_v8 castedSource = source as CassandraEventStorePlayer_v8;
 
-            try
+            string paginationToken = configuration["paginationToken"];
+            logger.LogInformation($"Initial Pagination Token => {paginationToken}");
+            bool hasMore = true;
+            while (hasMore)
             {
-                List<Task> tasks = new List<Task>();
-                await foreach (AggregateCommit sourceCommit in data)
+                LoadAggregateCommitsResult data = await castedSource.LoadAggregateCommitsAsync(paginationToken, 1000).ConfigureAwait(false);
+                paginationToken = data.PaginationToken;
+                hasMore = data.HasMoreResults;
+                logger.LogInformation($"Pagination Token => {data.PaginationToken}");
+
+                try
                 {
-                    AggregateCommit migrated = sourceCommit;
-                    foreach (var migration in migrations)
+                    foreach (AggregateCommit commit in data.Commits)
                     {
-                        if (migration.ShouldApply(sourceCommit))
+                        AggregateCommit migrated = commit;
+                        foreach (var migration in migrations)
                         {
-                            migrated = migration.Apply(sourceCommit);
+                            if (migration.ShouldApply(migrated))
+                            {
+                                migrated = migration.Apply(migrated);
+                            }
                         }
-                    }
 
-                    if (ForSomeReasonTheAggregateCommitHasBeenDeleted(migrated))
-                    {
-                        logger.Error(() => $"An aggregate commit has been wiped from the face of the Earth. R.I.P."); // Bonus: How Пикасо is spelled in English => Piccasso, Picasso, Piccaso ?? I bet someone will git-blame me
-                        continue;
-                    }
-
-                    if (dryRun == false)
-                    {
-                        Task task = target.AppendAsync(migrated);
-                        tasks.Add(task);
-
-                        if (tasks.Count > 100)
+                        if (ForSomeReasonTheAggregateCommitHasBeenDeleted(migrated))
                         {
-                            Task finished = await Task.WhenAny(tasks).ConfigureAwait(false);
-                            tasks.Remove(finished);
+                            logger.Error(() => $"An aggregate commit has been wiped from the face of the Earth. R.I.P."); // Bonus: How Пикасо is spelled in English => Piccasso, Picasso, Piccaso ?? I bet someone will git-blame me
+                            continue;
+                        }
+
+                        if (dryRun == false)
+                        {
+                            await target.AppendAsync(migrated).ConfigureAwait(false);
                         }
                     }
                 }
 
-                await Task.WhenAll(tasks).ConfigureAwait(false);
-            }
-
-            catch (Exception ex)
-            {
-                logger.ErrorException(ex, () => $"Something boom bam while runnning migration.");
+                catch (Exception ex)
+                {
+                    logger.ErrorException(ex, () => $"Something boom bam while runnning migration.");
+                }
             }
 
         }
