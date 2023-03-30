@@ -39,8 +39,7 @@ namespace Elders.Cronus.Persistence.Cassandra.Migrator_v8_to_v9
                 while (hasMore)
                 {
                     stopwatch.Start();
-                    LoadAggregateCommitsResult data = await castedSource.LoadAggregateCommitsAsync(paginationToken, 5000).ConfigureAwait(false);
-                    logger.LogInformation($"Load 5k Data -> {stopwatch.Elapsed}");
+                    LoadAggregateCommitsResult data = await castedSource.LoadAggregateCommitsAsync(paginationToken, 10000).ConfigureAwait(false);
 
                     if (data.Commits.Any())
                         logger.LogInformation(Encoding.UTF8.GetString(data.Commits.Last().AggregateRootId));
@@ -49,7 +48,6 @@ namespace Elders.Cronus.Persistence.Cassandra.Migrator_v8_to_v9
                     paginationToken = data.PaginationToken;
 
                     logger.LogInformation($"Pagination Token => {data.PaginationToken}");
-                    logger.LogInformation($"Has more -> {hasMore}");
 
                     stopwatch.Restart();
                     foreach (AggregateCommit commit in data.Commits)
@@ -71,7 +69,6 @@ namespace Elders.Cronus.Persistence.Cassandra.Migrator_v8_to_v9
                         }
 
                         stopwatch.Restart();
-                        logger.LogInformation($"Starts appending tasks");
                         if (dryRun == false)
                         {
                             var appendTask = target.AppendAsync(migrated);
@@ -80,21 +77,17 @@ namespace Elders.Cronus.Persistence.Cassandra.Migrator_v8_to_v9
 
                             if (tasks.Count > 100)
                             {
-                                logger.LogInformation("popping task out");
                                 Task completedTask = await Task.WhenAny(tasks);
                                 if (completedTask.IsFaulted)
                                 {
                                     logger.ErrorException(completedTask.Exception, () => "The fail");
                                 }
                                 tasks.Remove(completedTask);
-                                logger.LogInformation("task popped outt");
                             }
-
-                            logger.LogInformation("page done in: stopwatch.Elapsed.ToString()");
                         }
                     }
                     await Task.WhenAll(tasks);
-                    logger.LogInformation($"5k Aggregate commits written to new cassandra for -> {stopwatch.Elapsed}");
+                    logger.LogInformation($"10k Aggregate commits written to new cassandra for -> {stopwatch.Elapsed}");
                 }
             }
             catch (Exception ex)
