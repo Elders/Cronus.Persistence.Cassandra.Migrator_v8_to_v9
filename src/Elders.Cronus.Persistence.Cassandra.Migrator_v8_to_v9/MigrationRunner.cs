@@ -49,7 +49,6 @@ namespace Elders.Cronus.Persistence.Cassandra.Migrator_v8_to_v9
 
                     logger.LogInformation($"Pagination Token => {data.PaginationToken}");
 
-                    stopwatch.Restart();
                     foreach (AggregateCommit commit in data.Commits)
                     {
                         AggregateCommit migrated = commit;
@@ -60,7 +59,6 @@ namespace Elders.Cronus.Persistence.Cassandra.Migrator_v8_to_v9
                                 migrated = migration.Apply(migrated);
                             }
                         }
-                        logger.LogInformation(stopwatch.Elapsed.ToString());
 
                         if (ForSomeReasonTheAggregateCommitHasBeenDeleted(migrated))
                         {
@@ -68,7 +66,6 @@ namespace Elders.Cronus.Persistence.Cassandra.Migrator_v8_to_v9
                             continue;
                         }
 
-                        stopwatch.Restart();
                         if (dryRun == false)
                         {
                             var appendTask = target.AppendAsync(migrated);
@@ -88,6 +85,7 @@ namespace Elders.Cronus.Persistence.Cassandra.Migrator_v8_to_v9
                     }
                     await Task.WhenAll(tasks);
                     logger.LogInformation($"10k Aggregate commits written to new cassandra for -> {stopwatch.Elapsed}");
+                    stopwatch.Reset();
                 }
             }
             catch (Exception ex)
